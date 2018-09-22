@@ -132,6 +132,5 @@ void printBoard(const Board& b) {
 			std::cout << "     A B C D E F G H I J K L M N O" << std::endl;
 		}
 	}
-	std::cout << std::endl << "Hash: " << b.zobristHash << std::endl;
-	std::cout << std::endl << std::endl;
+	std::cout << std::endl << "Hash: " << b.zobristHash << std::endl << std::endl;
 }

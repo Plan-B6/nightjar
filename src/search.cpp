@@ -67,6 +67,7 @@ std::vector<ScoredMove> getThreatMoves(const Board& b, const int ply) {
 	if (b.empty >= ROWS * COLS - 4) { return {}; }
 
 	std::vector<std::vector<ScoredMove>> threatMoves = { {}, {}, {}, {} };
+	std::vector<ScoredMove> refutationMoves;
 
 	// Keep track of which type of threats we have found so far
 	bool threatStatus[4] = { false, false, false, false };
@@ -77,36 +78,60 @@ std::vector<ScoredMove> getThreatMoves(const Board& b, const int ply) {
 			int stone = b.state[row][col];
 			Coord c(row, col);
 
-			getThreatResponses(b, c, fourThreats, threatMoves[0], b.turn, ply);
-			// We can win, play the winning move
-			if (!threatMoves[0].empty()) { 
-				return threatMoves[0];
+			if (stone != (b.turn ^ COLOR_FLIP)) {
+				getThreatResponses(b, c, fourThreats, threatMoves[0], b.turn, ply);
+				// We can win, play the winning move
+				if (!threatMoves[0].empty()) {
+					return threatMoves[0];
+				}
 			}
 
-			if (!threatMoves[2].empty()) { continue; }
-			getThreatResponses(b, c, fourThreats, threatMoves[2], b.turn ^ COLOR_FLIP, ply);
-			if (!threatMoves[2].empty()) { continue; }
+			if (stone != b.turn) {
+				// Add opponent moves that create a four
+				getThreatResponses(b, c, refutations, refutationMoves, b.turn, ply);
 
-			if (!threatMoves[1].empty()) { continue; }
-			getThreatResponses(b, c, threeThreats, threatMoves[1], b.turn, ply);
-			if (!threatMoves[1].empty()) { continue; }
+				if (threatStatus[2]) continue;
+				getThreatResponses(b, c, fourThreats, threatMoves[2], b.turn ^ COLOR_FLIP, ply);
+				if (!threatMoves[2].empty()) {
+					threatStatus[2] = true;
+					continue;
+				}
+			}
 
-			getThreatResponses(b, c, threeThreats, threatMoves[3], b.turn ^ COLOR_FLIP, ply);
+			if (stone != (b.turn ^ COLOR_FLIP)) {
+				getThreatResponses(b, c, threeThreats, threatMoves[1], b.turn, ply);
+				if (!threatMoves[1].empty()) {
+					threatStatus[1] = true;
+					continue;
+				}
+			}
+
+			if (stone != b.turn) {
+				getThreatResponses(b, c, threeThreats, threatMoves[3], b.turn ^ COLOR_FLIP, ply);
+				if (!threatMoves[3].empty()) {
+					threatStatus[3] = true;
+				}
+			}
 		}
 	}
 
+	// Add refutations to threat moves
+	for (int i = 1; i < 4; ++i) {
+		threatMoves[i].insert(threatMoves[i].end(), refutationMoves.begin(), refutationMoves.end());
+	}
+
 	// Opponent has a four, block it
-	if (!threatMoves[2].empty()) {
+	if (threatStatus[2]) {
 		return threatMoves[2];
 	}
 
 	// We have a three that could lead to a win
-	if (!threatMoves[1].empty()) {
+	if (threatStatus[1]) {
 		return threatMoves[1];
 	}
 
 	// Opponent has a three that needs to be blocked
-	if (!threatMoves[3].empty()) {
+	if (threatStatus[3]) {
 		return threatMoves[3];
 	}
 
@@ -227,19 +252,14 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 	// Only threat moves can have duplicates
 	if (threatened) deleteDuplicateMoves(moves);
 
-	// Sort moves in descending score
+	// Sort moves by descending score
 	std::sort(moves.begin(), moves.end(), [](const auto& a, const auto& b) { return a.score > b.score; });
-
-	int moveCount = moves.size();
-	if (moveCount == 1 && isRoot) {
-		si.bestMove = moves[0].move;
-	}
 
 	int extend = 0;
 	// Threat extension
-	if (threatened && ply - depth + 1 < MAX_PLY) extend++;
+	if (threatened && ply + 1 < MAX_PLY) extend++;
 
-	for (int i = 0; i < moveCount; ++i) {
+	for (int i = 0, size = moves.size(); i < size; ++i) {
 
 		Coord c = moves[i].move;
 
@@ -247,7 +267,7 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 		if (isRoot && i == 0) { si.bestMove = moves[i].move; }
 
 		if (isRoot && depth == 5) { 
-			std::cout << i + 1 << "/" << moveCount + 1 << " " << squareToNotation(c) << " " << moves[i].score << std::endl; 
+			std::cout << i + 1 << "/" << size + 1 << " " << squareToNotation(c) << " " << moves[i].score << std::endl; 
 		}
 
 		si.nodes++;
@@ -261,9 +281,9 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 		// Late move reduction
 		if (!threatened && depth >= lateMoveReductionDepth && i >= lateMoveCount) {
 			int R = lateMoveR + i / lateMoveCount * 3;
-			if (R > depth - 2) { R = depth - 2; }
+			if (R > depth - 2) R = depth - 2;
 			score = -negamax(b, depth - 1 - R, ply + 1, -beta, -alpha, b.turn, si);
-		}
+		} 
 
 		if (score > alpha) {
 			score = -negamax(b, depth - 1 + extend, ply + 1, -beta, -alpha, b.turn, si);
