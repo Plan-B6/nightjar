@@ -27,8 +27,8 @@ void undoMove(Board& b, const Coord& c, const Coord& last) {
 	assert(b.state[c.row][c.col] != EMPTY);
 	assert(c != NO_MOVE);
 	b.state[c.row][c.col] = EMPTY;
-	b.zobristHash ^= b.zobristKeys[c.row][c.col][b.turn - 1];
 	b.turn ^= COLOR_FLIP;
+	b.zobristHash ^= b.zobristKeys[c.row][c.col][b.turn - 1];
 	b.last = last;
 	b.empty++;
 }
@@ -84,11 +84,12 @@ std::string squareToNotation(const Coord& c) {
 	std::string s = "   ";
 	s[0] = c.col + 65;
 	if (c.row <= ROWS - 10) {
-		s[1] = 49;
+		s[1] = '1';
 		s[2] = 53 - c.row;
 	}
 	else {
 		s[1] = 57 - (c.row - 6);
+		s.resize(2);
 	}
 	return s;
 }

@@ -50,7 +50,7 @@ static constexpr int adjacentBonus = 2;
 static constexpr int killerBonus[4] = { 5000, 4900, 4800, 4700 };
 
 static constexpr int lateMoveReductionDepth = 3;
-static constexpr int lateMoveCount = 10;
+static constexpr int lateMoveCount = 16;
 static constexpr int lateMoveR = 1;
 
 static constexpr int aspirationWindow = 10;
@@ -58,8 +58,9 @@ static constexpr int aspirationWindow = 10;
 static Coord killers[2][MAX_PLY + 1];
 
 void initSearch();
+void printPV(Board b);
 
-int probeTT(const Board& b, const int depth, const int ply, const int alpha, const int beta, SearchInfo& si);
+int probeTT(const Board& b, const int depth, const int alpha, const int beta, const bool isRoot, SearchInfo& si);
 void storeTT(Board& b, const int depth, const int score, const int flag);
 void delInvalidEntries(Board& b);
 
@@ -72,6 +73,6 @@ int scoreMove(const Board& b, const Coord& c, const int ply, const Coord& ttMove
 
 int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, SearchInfo& si);
 
-void iterativeDeepening(Board& b, SearchInfo& si);
+void iterativeDeepening(Board& b, SearchInfo& si, int depth);
 
 #endif

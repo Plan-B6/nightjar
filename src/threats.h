@@ -14,7 +14,7 @@ struct Threat {
 
 static const std::vector<Threat> threeThreats =
 {
-	{{EMPTY, BLACK, BLACK, BLACK, EMPTY, EMPTY}, {0, 4}, {4}},
+	{{EMPTY, BLACK, BLACK, BLACK, EMPTY, EMPTY}, {0, 4, 5}, {4}},
 	{{EMPTY, BLACK, EMPTY, BLACK, BLACK, EMPTY}, {0, 2, 5}, {2}},
 };
 

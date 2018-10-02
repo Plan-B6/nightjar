@@ -16,18 +16,36 @@ void initSearch() {
 	}
 }
 
-int probeTT(const Board& b, const int depth, const int ply, const int alpha, const int beta, SearchInfo& si) {
+void printPV(Board b) {
+	std::cout << "PV: ";
+	auto it = b.tt.find(b.zobristHash);
+	Coord ttMove = (it != b.tt.end()) ? it->second.move : NO_MOVE;
+	while (ttMove != NO_MOVE) {
+		makeMove(b, ttMove);
+		std::cout << squareToNotation(ttMove) << " ";
+		it = b.tt.find(b.zobristHash);
+		ttMove = (it != b.tt.end()) ? it->second.move : NO_MOVE;
+	}
+	std::cout << std::endl;
+}
+
+int probeTT(const Board& b, const int depth, const int alpha, const int beta, const bool isRoot, SearchInfo& si) {
 	auto it = b.tt.find(b.zobristHash);
 	if (it != b.tt.end()) {
 		if (it->second.depth >= depth) {
 			if (it->second.flag == TT_EXACT) {
-				if (ply == 0) { si.bestMove = it->second.move; }
+				if (isRoot) { 
+					si.bestMove = it->second.move; 
+					si.score = it->second.score;
+				}
 				return it->second.score;
 			}
 			else if (it->second.flag == TT_ALPHA && it->second.score <= alpha) {
+				if (isRoot) si.score = alpha;
 				return alpha;
 			}
 			else if (it->second.flag == TT_BETA && it->second.score >= beta) {
+				if (isRoot) si.score = beta;
 				return beta;
 			}
 		}
@@ -150,11 +168,8 @@ std::vector<ScoredMove> getMoves(const Board& b, const int ply) {
 	}
 
 	// Get move from TT if there is one
-	Coord ttMove = NO_MOVE;
 	auto it = b.tt.find(b.zobristHash);
-	if (it != b.tt.end()) {
-		ttMove = it->second.move;
-	}
+	Coord ttMove = (it != b.tt.end()) ? it->second.move : NO_MOVE;
 
 	for (int row = 0; row < ROWS; ++row) {
 		for (int col = 0; col < COLS; ++col) {
@@ -219,8 +234,8 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 	}
 
 	// Probe transposition table
-	// If this happens at the root, the best move is updated from the TT
-	int ttScore = probeTT(b, depth, ply, alpha, beta, si);
+	// If a valid TT entry is found at the root, the score and best move is updated from the TT
+	int ttScore = probeTT(b, depth, alpha, beta, isRoot, si);
 	if (ttScore != ENTRY_NOT_FOUND) return ttScore;
 
 	if (depth <= 0) {
@@ -266,8 +281,8 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 		// Prevents not having a best move
 		if (isRoot && i == 0) { si.bestMove = moves[i].move; }
 
-		if (isRoot && depth == 5) { 
-			std::cout << i + 1 << "/" << size + 1 << " " << squareToNotation(c) << " " << moves[i].score << std::endl; 
+		if (isRoot) { 
+			// std::cout << i + 1 << "/" << size + 1 << " " << squareToNotation(c) << " " << moves[i].score << std::endl; 
 		}
 
 		si.nodes++;
@@ -281,7 +296,7 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 		// Late move reduction
 		if (!threatened && depth >= lateMoveReductionDepth && i >= lateMoveCount) {
 			int R = lateMoveR + i / lateMoveCount * 3;
-			if (R > depth - 2) R = depth - 2;
+			R = std::min(depth - 2, R);
 			score = -negamax(b, depth - 1 - R, ply + 1, -beta, -alpha, b.turn, si);
 		} 
 
@@ -324,13 +339,13 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 	return alpha;
 }
 
-void iterativeDeepening(Board& b, SearchInfo& si) {
+void iterativeDeepening(Board& b, SearchInfo& si, int depth) {
 	initSearch();
 
 	int alpha = -WIN_SCORE;
 	int beta = WIN_SCORE;
 
-	for (int i = 1; i <= 5; ++i) {
+	for (int i = 1; i <= depth; ++i) {
 		si.clear();
 		si.depth = i;
 		int score = negamax(b, i, 0, alpha, beta, b.turn, si);
@@ -353,6 +368,9 @@ void iterativeDeepening(Board& b, SearchInfo& si) {
 			beta = WIN_SCORE;
 		}
 		
-		if (i == 5) si.print();
+		if (i == depth) {
+			si.print();
+			printPV(b);
+		}
 	}
 }
