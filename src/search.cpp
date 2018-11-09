@@ -29,23 +29,17 @@ void printPV(Board b) {
 	std::cout << std::endl;
 }
 
-int probeTT(const Board& b, const int depth, const int alpha, const int beta, const bool isRoot, SearchInfo& si) {
+int probeTT(const Board& b, const int depth, const int alpha, const int beta, SearchInfo& si) {
 	auto it = b.tt.find(b.zobristHash);
 	if (it != b.tt.end()) {
 		if (it->second.depth >= depth) {
 			if (it->second.flag == TT_EXACT) {
-				if (isRoot) { 
-					si.bestMove = it->second.move; 
-					si.score = it->second.score;
-				}
 				return it->second.score;
 			}
 			else if (it->second.flag == TT_ALPHA && it->second.score <= alpha) {
-				if (isRoot) si.score = alpha;
 				return alpha;
 			}
 			else if (it->second.flag == TT_BETA && it->second.score >= beta) {
-				if (isRoot) si.score = beta;
 				return beta;
 			}
 		}
@@ -218,7 +212,7 @@ int scoreMove(const Board& b, const Coord& c, const int ply, const Coord& ttMove
 }
 
 int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, SearchInfo& si) {
-	bool isRoot = (ply == 0);
+	bool isRoot = (!ply);
 	int score;
 	Coord bestMove;
 	int ttFlag = TT_ALPHA;
@@ -231,12 +225,11 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 		int wAlpha = (alpha > -WIN_SCORE + ply) ? alpha : -WIN_SCORE + ply;
 		int wBeta = (beta < WIN_SCORE - ply - 1) ? beta : WIN_SCORE - ply - 1;
 		if (wAlpha >= wBeta) return wAlpha;
-	}
 
-	// Probe transposition table
-	// If a valid TT entry is found at the root, the score and best move is updated from the TT
-	int ttScore = probeTT(b, depth, alpha, beta, isRoot, si);
-	if (ttScore != ENTRY_NOT_FOUND) return ttScore;
+		// Probe transposition table
+		int ttScore = probeTT(b, depth, alpha, beta, si);
+		if (ttScore != ENTRY_NOT_FOUND) return ttScore;
+	}
 
 	if (depth <= 0) {
 		si.nodes++;
@@ -280,10 +273,6 @@ int negamax(Board& b, int depth, int ply, int alpha, int beta, int color, Search
 
 		// Prevents not having a best move
 		if (isRoot && i == 0) { si.bestMove = moves[i].move; }
-
-		if (isRoot) { 
-			// std::cout << i + 1 << "/" << size + 1 << " " << squareToNotation(c) << " " << moves[i].score << std::endl; 
-		}
 
 		si.nodes++;
 

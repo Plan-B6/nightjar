@@ -39,7 +39,7 @@ struct SearchInfo {
 		if (fh > 0) {
 			std::cout << "Move ordering: " << float(fhf) / float(fh) * 100 << std::endl;
 		}
-		std::cout << "Time: " << double(clock() - startTime) / (CLOCKS_PER_SEC / 1000) << std::endl;
+		std::cout << "Time: " << double(clock() - startTime) / (CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 		std::cout << "Best move: " << squareToNotation(bestMove) << std::endl;
 	}
 };
@@ -60,7 +60,7 @@ static Coord killers[2][MAX_PLY + 1];
 void initSearch();
 void printPV(Board b);
 
-int probeTT(const Board& b, const int depth, const int alpha, const int beta, const bool isRoot, SearchInfo& si);
+int probeTT(const Board& b, const int depth, const int alpha, const int beta, SearchInfo& si);
 void storeTT(Board& b, const int depth, const int score, const int flag);
 void delInvalidEntries(Board& b);
 
